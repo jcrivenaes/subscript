@@ -18,6 +18,7 @@ SSCRIPTS = [
     "csv_stack = subscript.csv_stack.csv_stack:main",
     "eclcompress = subscript.eclcompress.eclcompress:main",
     "ecldiff2roff = subscript.ecldiff2roff.ecldiff2roff:main",
+    "fmu_copy_revision2 = subscript.fmu_copy_revison.fmu_copy_revision:main",
     "fmuobs = subscript.fmuobs.fmuobs:main",
     "gen_satfunc = subscript.gen_satfunc.gen_satfunc:main",
     "interp_relperm = subscript.interp_relperm.interp_relperm:main",
