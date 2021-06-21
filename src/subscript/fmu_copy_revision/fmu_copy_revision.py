@@ -6,18 +6,21 @@
 # Some variables are here named to conform to something else than PEP8
 # pylint: disable=invalid-name
 
-import os
 import sys
 from os.path import join
 import argparse
 import pathlib
 import tempfile
 import time
+import getpass
 import subprocess
 from typing import List
 
 
+import subscript
 from subscript import __version__
+
+logger = subscript.getLogger(__name__)
 
 DESCRIPTION = """This is a simple interactive script for copying a FMU revision folder
 with options of:
@@ -91,13 +94,21 @@ def get_parser() -> argparse.ArgumentParser:
     usetext = "fmu_copy_revision <commandline> OR interactive"
     parser = argparse.ArgumentParser(
         description=DESCRIPTION,
-        formatter_class=argparse.RawTextHelpFormatter,
+        # formatter_class=argparse.RawTextHelpFormatter,
         usage=usetext,
     )
 
     parser.add_argument("--dryrun", action="store_true", help="Run dry run for testing")
     parser.add_argument("--all, -all, -a", action="store_true", help="List all folders")
     parser.add_argument("--source", dest="source", type=str, help="Add source folder")
+    parser.add_argument("--target", dest="target", type=str, help="Add target folder")
+    parser.add_argument(
+        "--option",
+        dest="option",
+        type=str,
+        default="3",
+        help="Option for files to include",
+    )
 
     parser.add_argument(
         "--version",
@@ -105,11 +116,12 @@ def get_parser() -> argparse.ArgumentParser:
         version="%(prog)s (subscript version " + __version__ + ")",
     )
 
+    logger.info("Parsing commandline")
     return parser
 
 
 def do_parse_args(args):
-    """Parse command line arguments"""
+    """Parse command line arguments."""
 
     if args is None:
         args = sys.argv[1:]
@@ -117,6 +129,11 @@ def do_parse_args(args):
     parser = get_parser()
 
     args = parser.parse_args(args)
+
+    # if len(sys.argv[1:]) < 2:
+    #     parser.print_help()
+    #     print("QUIT")
+    #     sys.exit(0)
 
     return args
 
@@ -162,10 +179,36 @@ def menu1(folders):
     return usefolder
 
 
+def construct_target(source: str) -> pathlib.Path:
+    """Validate source and construct default target from source path."""
+
+    print("SOURCE", source)
+
+    sourcepath = pathlib.Path(source)
+    sourcenode = sourcepath.name
+
+    if not sourcepath.exists():
+        raise ValueError("Input folder does not exist!")
+
+    today = time.strftime("%Y%m%d")
+    user = getpass.getuser()
+    print("User and today", user, today)
+
+    userpath = sourcepath.parent / "users"
+    if not userpath.exists():
+        raise ValueError("The user folder must exist in advance!")
+
+    xsource = sourcenode + "_" + today
+    print("Userpath is ", userpath)
+    target = pathlib.Path(userpath) / user / sourcenode / xsource
+    print("Target is ", target.resolve())
+    return target
+
+
 def menu2(folder):
     """Print an interactive menu to the user for target."""
 
-    default = pathlib.Path(folder) / "user" / "folder"
+    default = construct_target(folder)
     target = str(input(f"Choose (default is {default}): "))
 
     if not target:
@@ -301,6 +344,7 @@ def main(args=None) -> None:
     """Entry point from command line."""
 
     args = do_parse_args(args)
+
     if not args.source:
         # interactive menues
         folders = check_folders()
@@ -311,11 +355,16 @@ def main(args=None) -> None:
     else:
         # command line only (some checks will be missing)
         print("Command line mode only")
+        option = args.option
+        print("XXXY", type(args.source))
+        if not args.target:
+            target = construct_target(args.source)
+        target = args.target
         pass
 
-    exclude = define_exclude(option)
-    do_rsyncing(source, target, exclude)
+    # exclude = define_exclude(option)
+    # do_rsyncing(source, target, exclude)
 
 
 if __name__ == "__main__":
-    main(sys.argv)
+    main()
